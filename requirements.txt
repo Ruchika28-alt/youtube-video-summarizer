@@ -1,5 +1,7 @@
 streamlit
-youtube-transcript-api
-langchain
 openai
+langchain
+langchain-core
+langchain-community
+youtube-transcript-api
 requests
