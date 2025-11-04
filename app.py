@@ -1,20 +1,19 @@
-# app.py
 import re
 import streamlit as st
 import requests
 from youtube_transcript_api import YouTubeTranscriptApi
-from langchain.chains import LLMChain
-from langchain.prompts import PromptTemplate
-from langchain.llms import OpenAI
 
-# LLM setup (use st.secrets for API keys)
+# ✅ Updated imports for latest LangChain (0.3+)
+from langchain_core.prompts import PromptTemplate
+from langchain_openai import OpenAI
+from langchain.chains import LLMChain
+
+# Initialize LLM with your secret key
 llm = OpenAI(api_key=st.secrets["openai_api_key"], temperature=0.3)
 
 def extract_video_id(url):
-    # handles full urls and short youtu.be links
     match = re.search(r"(?:v=|\/)([0-9A-Za-z_-]{11})(?:\?|&|$)", url)
     if not match:
-        # try youtu.be short link
         match = re.search(r"youtu\.be\/([0-9A-Za-z_-]{11})", url)
     return match.group(1) if match else None
 
@@ -62,7 +61,7 @@ def process_youtube_video(url, youtube_api_key):
     summary = summarize_text(transcript)
     return title, summary, transcript
 
-st.title("YouTube Video Summarizer")
+st.title("🎥 YouTube Video Summarizer")
 st.write("Paste a YouTube link to get a summary and transcript.")
 
 url = st.text_input("YouTube URL:")
@@ -82,3 +81,4 @@ if st.button("Summarize"):
                 st.write("Transcript not available.")
         else:
             st.error(summary)
+
