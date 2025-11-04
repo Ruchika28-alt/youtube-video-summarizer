@@ -1,7 +1,5 @@
 streamlit
 openai
-langchain
-langchain-core
-langchain-community
+langchain==0.0.352
 youtube-transcript-api
 requests
