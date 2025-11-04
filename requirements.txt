@@ -1,7 +1,7 @@
-streamlit
-openai
-langchain
-langchain-core
-langchain-openai
-youtube-transcript-api
-requests
+streamlit==1.39.0
+openai==1.51.0
+langchain==0.3.7
+langchain-core==0.3.15
+langchain-openai==0.2.5
+youtube-transcript-api==0.6.2
+requests==2.32.3
