@@ -6,44 +6,39 @@ from langchain.prompts import PromptTemplate
 from langchain_openai import OpenAI
 import requests
 
-# --- Set up OpenAI LLM ---
+# --- Initialize OpenAI LLM ---
 llm = OpenAI(api_key=st.secrets["openai_api_key"], temperature=0.3)
 
-# --- Function to extract video ID from URL ---
 def extract_video_id(url):
     match = re.search(r"(?:v=|\/)([0-9A-Za-z_-]{11}).*", url)
     return match.group(1) if match else None
 
-# --- Function to get video metadata via YouTube API ---
 def get_video_metadata(video_id, api_key):
     url = f"https://www.googleapis.com/youtube/v3/videos?id={video_id}&key={api_key}&part=snippet"
     response = requests.get(url).json()
-    if response.get('items'):
-        snippet = response['items'][0]['snippet']
-        return snippet['title'], snippet['description']
+    if response.get("items"):
+        snippet = response["items"][0]["snippet"]
+        return snippet["title"], snippet["description"]
     return None, None
 
-# --- Function to get transcript ---
 def get_transcript(video_id):
     try:
         transcript = YouTubeTranscriptApi.get_transcript(video_id)
-        return " ".join([entry['text'] for entry in transcript])
+        return " ".join([entry["text"] for entry in transcript])
     except:
         return None
 
-# --- Summarization using LangChain ---
 def summarize_text(text):
     prompt = PromptTemplate(
         input_variables=["text"],
         template=(
             "Summarize the following YouTube video transcript in 3–5 bullet points, "
-            "highlighting key topics and important timestamps if mentioned:\n\n{text}\n\nSummary:"
+            "highlighting key topics and any timestamps if mentioned:\n\n{text}\n\nSummary:"
         ),
     )
     chain = LLMChain(llm=llm, prompt=prompt)
     return chain.run(text=text)
 
-# --- Main process function ---
 def process_youtube_video(url, youtube_api_key):
     video_id = extract_video_id(url)
     if not video_id:
@@ -61,7 +56,7 @@ def process_youtube_video(url, youtube_api_key):
 
 # --- Streamlit UI ---
 st.title("🎥 YouTube Video Summarizer")
-st.write("Paste a YouTube video link below to get its transcript and a concise summary.")
+st.write("Paste a YouTube video link below to get its transcript and summary.")
 
 url = st.text_input("Enter YouTube URL:")
 if st.button("Summarize"):
@@ -80,5 +75,6 @@ if st.button("Summarize"):
             st.error("❌ Failed to process the video. Please check the URL or API keys.")
     else:
         st.warning("⚠️ Please enter a valid YouTube URL.")
+
 
 
