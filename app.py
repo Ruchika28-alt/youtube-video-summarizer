@@ -1,80 +1,49 @@
-import re
 import streamlit as st
-from youtube_transcript_api import YouTubeTranscriptApi
+from langchain_openai import ChatOpenAI
 from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
-from langchain_openai import OpenAI
-import requests
+from youtube_transcript_api import YouTubeTranscriptApi
+import re
 
-# --- Initialize OpenAI LLM ---
-llm = OpenAI(api_key=st.secrets["openai_api_key"], temperature=0.3)
-
-def extract_video_id(url):
-    match = re.search(r"(?:v=|\/)([0-9A-Za-z_-]{11}).*", url)
-    return match.group(1) if match else None
-
-def get_video_metadata(video_id, api_key):
-    url = f"https://www.googleapis.com/youtube/v3/videos?id={video_id}&key={api_key}&part=snippet"
-    response = requests.get(url).json()
-    if response.get("items"):
-        snippet = response["items"][0]["snippet"]
-        return snippet["title"], snippet["description"]
-    return None, None
-
-def get_transcript(video_id):
-    try:
-        transcript = YouTubeTranscriptApi.get_transcript(video_id)
-        return " ".join([entry["text"] for entry in transcript])
-    except:
-        return None
-
-def summarize_text(text):
-    prompt = PromptTemplate(
-        input_variables=["text"],
-        template=(
-            "Summarize the following YouTube video transcript in 3–5 bullet points, "
-            "highlighting key topics and any timestamps if mentioned:\n\n{text}\n\nSummary:"
-        ),
-    )
-    chain = LLMChain(llm=llm, prompt=prompt)
-    return chain.run(text=text)
-
-def process_youtube_video(url, youtube_api_key):
-    video_id = extract_video_id(url)
-    if not video_id:
-        return "Invalid YouTube URL.", None, None
-
-    title, description = get_video_metadata(video_id, youtube_api_key)
-    transcript = get_transcript(video_id)
-
-    if not transcript:
-        summary = summarize_text(description or "No transcript or description available.")
-        return title, f"Summary (from description): {summary}", None
-
-    summary = summarize_text(transcript)
-    return title, summary, transcript
-
-# --- Streamlit UI ---
+# --- App title ---
 st.title("🎥 YouTube Video Summarizer")
-st.write("Paste a YouTube video link below to get its transcript and summary.")
 
-url = st.text_input("Enter YouTube URL:")
-if st.button("Summarize"):
-    if url:
-        title, summary, transcript = process_youtube_video(url, st.secrets["youtube_api_key"])
-        if title:
-            st.subheader(f"📌 Title: {title}")
-            st.subheader("📝 Summary:")
-            st.write(summary)
-            if transcript:
-                st.subheader("🗒️ Full Transcript:")
-                st.text_area("Transcript", transcript, height=300)
-            else:
-                st.info("Transcript not available.")
-        else:
-            st.error("❌ Failed to process the video. Please check the URL or API keys.")
+# --- API keys from Streamlit secrets ---
+openai_api_key = st.secrets["openai_api_key"]
+youtube_api_key = st.secrets["youtube_api_key"]
+
+# --- Get YouTube video URL ---
+url = st.text_input("Enter YouTube video URL")
+
+# --- Extract transcript ---
+def get_transcript(video_url):
+    video_id = re.findall(r"v=([a-zA-Z0-9_-]{11})", video_url)
+    if not video_id:
+        return None
+    transcript = YouTubeTranscriptApi.get_transcript(video_id[0])
+    return " ".join([t["text"] for t in transcript])
+
+# --- Load transcript ---
+if url:
+    with st.spinner("Fetching transcript..."):
+        transcript = get_transcript(url)
+
+    if transcript:
+        st.success("Transcript fetched successfully!")
+
+        # --- Summarization prompt ---
+        template = """Summarize the following YouTube video transcript in concise bullet points:\n\n{transcript}"""
+        prompt = PromptTemplate(input_variables=["transcript"], template=template)
+
+        # --- Initialize model ---
+        llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.3, api_key=openai_api_key)
+        chain = LLMChain(llm=llm, prompt=prompt)
+
+        # --- Generate summary ---
+        with st.spinner("Generating summary..."):
+            summary = chain.run(transcript)
+
+        st.subheader("📝 Summary")
+        st.write(summary)
     else:
-        st.warning("⚠️ Please enter a valid YouTube URL.")
-
-
-
+        st.error("Could not fetch transcript. Check the video URL.")
