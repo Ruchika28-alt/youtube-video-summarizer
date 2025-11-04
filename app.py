@@ -2,11 +2,10 @@ import re
 import streamlit as st
 import requests
 from youtube_transcript_api import YouTubeTranscriptApi
-
-# ✅ Updated imports for latest LangChain (0.3+)
+from langchain.chains.llm import LLMChain
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import OpenAI
-from langchain.chains import LLMChain
+
 
 # Initialize LLM with your secret key
 llm = OpenAI(api_key=st.secrets["openai_api_key"], temperature=0.3)
@@ -81,4 +80,5 @@ if st.button("Summarize"):
                 st.write("Transcript not available.")
         else:
             st.error(summary)
+
 
