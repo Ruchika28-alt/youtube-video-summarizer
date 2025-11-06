@@ -1,6 +1,4 @@
 streamlit
 google-generativeai
-youtube-transcript-api
+youtube-transcript-api==0.6.2
 reportlab
-python-dotenv
-pathlib
